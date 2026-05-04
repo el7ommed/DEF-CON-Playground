@@ -2,6 +2,7 @@
 #include <Adafruit_ST7789.h>
 #include <SPI.h>
 #include <WiFi.h>
+#include <Adafruit_NeoPixel.h>
 #include "time.h"
 #include "secrets.h"
 
@@ -16,8 +17,11 @@ const int daylightOffset_sec = 0;
 #define TFT_RST -1
 #define TFT_SCK 6
 #define TFT_MOSI 7
+#define LED_DATA_PIN 8
+#define NUM_LEDS 16
 
 Adafruit_ST7789 tft = Adafruit_ST7789(TFT_CS, TFT_DC, TFT_RST);
+Adafruit_NeoPixel strip(NUM_LEDS, LED_DATA_PIN, NEO_GRB + NEO_KHZ800);
 
 bool tryConnect(const char *ssid, const char *pass, unsigned long timeoutMs)
 {
@@ -63,6 +67,10 @@ void setup()
     tft.fillScreen(ST77XX_BLACK);
     tft.setTextSize(2);
     tft.setTextColor(ST77XX_WHITE);
+
+    strip.begin();
+    strip.setBrightness(8);
+    strip.show();
 
     // Try saved networks and show progress on TFT
     const unsigned long perNetworkTimeout = 5000; // ms
@@ -121,5 +129,12 @@ void loop()
     tft.setCursor(4, 56);
     tft.print(timebuf);
 
-    delay(1000);
+    static uint16_t j = 0;
+    for (int i = 0; i < NUM_LEDS; ++i)
+    {
+        strip.setPixelColor(i, strip.ColorHSV((j + i * 65536 / NUM_LEDS) & 0xFFFF));
+    }
+    strip.show();
+    j += 256;
+    delay(50);
 }
