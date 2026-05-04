@@ -17,6 +17,7 @@ const int daylightOffset_sec = 0;
 #define TFT_RST -1
 #define TFT_SCK 6
 #define TFT_MOSI 7
+// LED pins
 #define LED_DATA_PIN 8
 #define NUM_LEDS 16
 
@@ -58,6 +59,20 @@ bool tryConnect(const char *ssid, const char *pass, unsigned long timeoutMs)
     return false;
 }
 
+static void setAllRGB(uint8_t r, uint8_t g, uint8_t b)
+{
+    uint32_t color = strip.Color(r, g, b);
+    for (int i = 0; i < NUM_LEDS; ++i)
+        strip.setPixelColor(i, color);
+    strip.show();
+}
+
+// tiny HSV->RGB helper using 0..65535 hue like ColorHSV expects
+static uint32_t colorFromHSV16(uint16_t hue16, uint8_t sat = 255, uint8_t val = 150)
+{
+    return strip.ColorHSV(hue16, sat, val);
+}
+
 void setup()
 {
     // TFT init
@@ -71,6 +86,9 @@ void setup()
     strip.begin();
     strip.setBrightness(8);
     strip.show();
+
+    // Start as RED while trying networks
+    setAllRGB(255, 0, 0);
 
     // Try saved networks and show progress on TFT
     const unsigned long perNetworkTimeout = 5000; // ms
@@ -93,6 +111,8 @@ void setup()
 
     if (!connected)
     {
+        // show RED and message (stays red)
+        setAllRGB(255, 0, 0);
         tft.fillScreen(ST77XX_BLACK);
         tft.setCursor(4, 4);
         tft.print("No WiFi");
@@ -100,6 +120,13 @@ void setup()
     }
     else
     {
+        // brief GREEN pulse on successful connect
+        setAllRGB(0, 255, 0);
+        delay(700);
+        // blackout briefly to transition to rainbow later
+        setAllRGB(0, 0, 0);
+
+        // init time (NTP)
         configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
         tft.fillRect(0, 0, 240, 56, ST77XX_BLACK);
         tft.setCursor(4, 4);
